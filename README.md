@@ -9,4 +9,5 @@ $ pip install mysql-connector-python
 $ pip install Flask-MQTT
 $ pip install requests
 $ sudo apt-get install mosquitto-clients
+$ pip install mysqlclient
 ```
