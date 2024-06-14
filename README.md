@@ -16,3 +16,8 @@ $ pip install mysqlclient
 mosquitto_pub -h broker.emqx.io -t "/flaskk/mqtt" -m '{"sensor_esquerdo": 1, "sensor_direito": 1, "velocidade": 10, "distancia": 20, "timestamp": "2024-06-15 11:30:00"}'
 ```
 Obs: A api deve estar rodando para que isso funcione.
+
+# Rodar a API
+```bash
+$ flak run
+```
