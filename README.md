@@ -19,5 +19,5 @@ Obs: A api deve estar rodando para que isso funcione.
 
 # Rodar a API
 ```bash
-$ flak run
+$ flask run
 ```
