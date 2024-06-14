@@ -41,7 +41,8 @@ def handle_mqtt_message(client, userdata, message):
 
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Senha%40123@localhost/rastrobotdb2'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Senha%40123@localhost/rastrobotdb2'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:Leomitx10%40@localhost/rastrobotdb2'
 db = SQLAlchemy(app)
 
 @app.route('/')
