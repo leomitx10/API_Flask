@@ -1,87 +1,90 @@
-#include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-// Definições dos pinos dos motores
-#define MOTOR_ESQUERDO_PIN_A 2  // Pino A do motor esquerdo
-#define MOTOR_ESQUERDO_PIN_B 3  // Pino B do motor esquerdo
-#define MOTOR_DIREITO_PIN_A 4   // Pino A do motor direito
-#define MOTOR_DIREITO_PIN_B 5   // Pino B do motor direito
+// Configurações do Wi-Fi
+const char* ssid = "TESTE";
+const char* password = "12345678";
 
-// WiFi credentials
-const char* ssid = "NOME DA REDE WIFI";
-const char* password = "SENHA DA REDE WIFI";
-
-// MQTT broker
-const char* mqtt_broker = "broker.emqx.io";
-const char* topic = "/flaskk/mqtt";
+// Configurações do MQTT
+const char* mqtt_server = "broker.emqx.io";
 const int mqtt_port = 1883;
+const char* mqtt_topic = "/flaskk/mqtt";
 
+// Instâncias do cliente Wi-Fi e do cliente MQTT
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// Função de inicialização
-void setup() {
-  pinMode(MOTOR_ESQUERDO_PIN_A, OUTPUT);
-  pinMode(MOTOR_ESQUERDO_PIN_B, OUTPUT);
-  pinMode(MOTOR_DIREITO_PIN_A, OUTPUT);
-  pinMode(MOTOR_DIREITO_PIN_B, OUTPUT);
-  
-  Serial.begin(9600);
+void setup_wifi() {
+  delay(10);
+  Serial.println();
+  Serial.print("Conectando-se a ");
+  Serial.println(ssid);
 
-  // Inicializa a conexão Wi-Fi
-  Serial.print("Conectando ao WiFi ");
   WiFi.begin(ssid, password);
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println(" conectado");
 
-  // Configura o MQTT
-  client.setServer(mqtt_broker, mqtt_port);
+  Serial.println("");
+  Serial.println("WiFi conectado");
+  Serial.println("Endereço IP: ");
+  Serial.println(WiFi.localIP());
+}
 
-  // Conecta ao broker MQTT
+void reconnect() {
+  // Loop até que a conexão MQTT seja estabelecida
   while (!client.connected()) {
-    Serial.println("Conectando ao MQTT...");
+    Serial.print("Tentando se conectar ao MQTT...");
     if (client.connect("ESP32Client")) {
-      Serial.println("Conectado ao MQTT!");
+      Serial.println("conectado");
     } else {
-      Serial.print("Falha na conexão ao MQTT. Estado: ");
+      Serial.print("falhou, rc=");
       Serial.print(client.state());
-      delay(2000);
+      Serial.println(" tentando novamente em 5 segundos");
+      delay(5000);
     }
   }
 }
 
-// Função principal
-void loop() {
-  // Gera dados simulados
-  int sensorEsquerdo = random(2);
-  int sensorDireito = random(2);
-  float velocidade_inst = random(50, 150); // Velocidade entre 50 e 150 unidades por segundo
-  float distancia_parcial = random(1000); // Distância entre 0 e 1000 unidades
-
-  // Cria o JSON com os dados simulados
-  String jsonData = String("{\"sensor_esquerdo\": ") + sensorEsquerdo + 
-                    String(", \"sensor_direito\": ") + sensorDireito + 
-                    String(", \"velocidade\": ") + velocidade_inst + 
-                    String(", \"distancia\": ") + distancia_parcial + 
-                    String(", \"timestamp\": \"") + getTimestamp() + String("\"}");
-
-  // Publica os dados no tópico MQTT
-  client.publish(topic, jsonData.c_str());
-  delay(1000); // Espera um segundo antes de enviar os dados novamente
+void setup() {
+  Serial.begin(9600);
+  setup_wifi();
+  client.setServer(mqtt_server, mqtt_port);
 }
 
-// Função para obter o timestamp atual
-String getTimestamp() {
-  time_t now;
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    return "Falha ao obter o tempo";
+void loop() {
+  if (!client.connected()) {
+    reconnect();
   }
-  char timestamp[20];
-  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &timeinfo);
-  return String(timestamp);
+  client.loop();
+
+  // Leitura dos dados dos sensores
+  int sensorEsquerdo = analogRead(34);  // Exemplo de leitura do sensor esquerdo
+  int sensorDireito = analogRead(35);   // Exemplo de leitura do sensor direito
+  float velocidade = 10.5;              // Exemplo de leitura da velocidade
+  float distancia = 20.0;               // Exemplo de leitura da distância
+
+  // Criação do payload JSON
+  char payload[256];
+  snprintf(payload, sizeof(payload), "{\"sensor_esquerdo\": %d, \"sensor_direito\": %d, \"velocidade\": %.2f, \"distancia\": %.2f, \"timestamp\": \"%s\"}", 
+           sensorEsquerdo, sensorDireito, velocidade, distancia, getCurrentTime().c_str());
+
+  Serial.print("Publicando payload: ");
+  Serial.println(payload);
+
+  client.publish(mqtt_topic, payload);
+
+  delay(500);  // Meio segundo
+}
+
+String getCurrentTime() {
+  time_t now = time(nullptr);
+  struct tm* p_tm = localtime(&now);
+  char buffer[20];
+  sprintf(buffer, "%04d-%02d-%02d %02d:%02d:%02d", 
+          p_tm->tm_year + 1900, p_tm->tm_mon + 1, p_tm->tm_mday, 
+          p_tm->tm_hour, p_tm->tm_min, p_tm->tm_sec);
+  return String(buffer);
 }
